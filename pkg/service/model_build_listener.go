@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/pkg/errors"
@@ -108,15 +109,34 @@ func (t *defaultModelBuildTask) buildSSLNegotiationPolicy(_ context.Context) *st
 	return &t.defaultSSLPolicy
 }
 
-func (t *defaultModelBuildTask) buildListenerCertificates(_ context.Context) []elbv2model.Certificate {
+func (t *defaultModelBuildTask) buildListenerCertificates(_ context.Context) ([]elbv2model.Certificate, error) {
 	var rawCertificateARNs []string
 	_ = t.annotationParser.ParseStringSliceAnnotation(annotations.SvcLBSuffixSSLCertificate, &rawCertificateARNs, t.service.Annotations)
 
 	var certificates []elbv2model.Certificate
+	err := validateListenerCertificates(rawCertificateARNs, t.region)
+	if err != nil {
+		return nil, err
+	}
 	for _, cert := range rawCertificateARNs {
 		certificates = append(certificates, elbv2model.Certificate{CertificateARN: aws.String(cert)})
 	}
-	return certificates
+	return certificates, nil
+}
+
+func validateListenerCertificates(rawCertificateARNs []string, region string) error {
+	invalidCerts := make([]string, 0)
+	for _, cert := range rawCertificateARNs {
+		if !strings.Contains(cert, region) {
+			invalidCerts = append(invalidCerts, cert)
+		}
+	}
+	if len(invalidCerts) > 0 {
+		invalidCertsErr := errors.Errorf("Certificate ARN(s) %v not valid for region %s", invalidCerts, region)
+		return invalidCertsErr
+	}
+
+	return nil
 }
 
 func validateTLSPortsSet(rawTLSPorts []string, ports []corev1.ServicePort) error {
@@ -192,7 +212,7 @@ type listenerConfig struct {
 }
 
 func (t *defaultModelBuildTask) buildListenerConfig(ctx context.Context) (*listenerConfig, error) {
-	certificates := t.buildListenerCertificates(ctx)
+	certificates, err := t.buildListenerCertificates(ctx)
 	tlsPortsSet, err := t.buildTLSPortsSet(ctx)
 	if err != nil {
 		return nil, err

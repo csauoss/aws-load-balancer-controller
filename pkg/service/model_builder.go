@@ -41,7 +41,7 @@ func NewDefaultModelBuilder(annotationParser annotations.Parser, subnetsResolver
 	elbv2TaggingManager elbv2deploy.TaggingManager, ec2Client services.EC2, featureGates config.FeatureGates, clusterName string, defaultTags map[string]string,
 	externalManagedTags []string, defaultSSLPolicy string, defaultTargetType string, enableIPTargetType bool, serviceUtils ServiceUtils,
 	backendSGProvider networking.BackendSGProvider, sgResolver networking.SecurityGroupResolver, enableBackendSG bool,
-	disableRestrictedSGRules bool, logger logr.Logger) *defaultModelBuilder {
+	disableRestrictedSGRules bool, logger logr.Logger, region string) *defaultModelBuilder {
 	return &defaultModelBuilder{
 		annotationParser:         annotationParser,
 		subnetsResolver:          subnetsResolver,
@@ -63,6 +63,7 @@ func NewDefaultModelBuilder(annotationParser annotations.Parser, subnetsResolver
 		enableBackendSG:          enableBackendSG,
 		disableRestrictedSGRules: disableRestrictedSGRules,
 		logger:                   logger,
+		region:                   region,
 	}
 }
 
@@ -90,6 +91,7 @@ type defaultModelBuilder struct {
 	defaultTargetType   elbv2model.TargetType
 	enableIPTargetType  bool
 	logger              logr.Logger
+	region              string
 }
 
 func (b *defaultModelBuilder) Build(ctx context.Context, service *corev1.Service) (core.Stack, *elbv2model.LoadBalancer, bool, error) {
@@ -111,6 +113,7 @@ func (b *defaultModelBuilder) Build(ctx context.Context, service *corev1.Service
 		enableBackendSG:          b.enableBackendSG,
 		disableRestrictedSGRules: b.disableRestrictedSGRules,
 		logger:                   b.logger,
+		region:                   b.region,
 
 		service:   service,
 		stack:     stack,
@@ -167,6 +170,7 @@ type defaultModelBuildTask struct {
 	enableIPTargetType  bool
 	ec2Client           services.EC2
 	logger              logr.Logger
+	region              string
 
 	service *corev1.Service
 

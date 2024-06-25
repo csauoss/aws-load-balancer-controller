@@ -6461,7 +6461,7 @@ func Test_defaultModelBuilderTask_Build(t *testing.T) {
 			}
 			builder := NewDefaultModelBuilder(annotationParser, subnetsResolver, vpcInfoProvider, "vpc-xxx", trackingProvider, elbv2TaggingManager, ec2Client, featureGates,
 				"my-cluster", nil, nil, "ELBSecurityPolicy-2016-08", defaultTargetType, enableIPTargetType, serviceUtils,
-				backendSGProvider, sgResolver, tt.enableBackendSG, tt.disableRestrictedSGRules, logr.New(&log.NullLogSink{}))
+				backendSGProvider, sgResolver, tt.enableBackendSG, tt.disableRestrictedSGRules, logr.New(&log.NullLogSink{}), "certArn")
 			ctx := context.Background()
 			stack, _, _, err := builder.Build(ctx, tt.svc)
 			if tt.wantError {
